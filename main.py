@@ -1,33 +1,32 @@
+from betl import *
 from moztelemetry.dataset import Dataset
+from datetime import date, timedelta
+from pyspark import SparkConf, SparkContext
+from pyspark.sql import SQLContext
 
-testpilottest_df = pings_to_df(
-    sqlContext,
-    Dataset.from_source("telemetry") \
-        .where(docType=docType) \
-        .where(submissionDate=day) \
-        .where(appName="Firefox") \
-        .records(sc)
-    DataFrameConfig(
-        [
-            ("client_id", "clientId", None, StringType()),
-            ("enc_cliqz_udid", "payload/payload/cliqzSession", None, StringType()),
-            ("cliqz_udid", "payload/payload/cliqzSession", decrypt_cliqz_id, StringType()),
-            ("cliqz_client_id", "payload/payload/cliqzSession", split_cliqz_id, StringType()),
-            ("session_id", "payload/payload/sessionId", None, StringType()),
-            ("subsession_id", "payload/payload/subsessionId", None, StringType()),
-            ("date", "meta/submissionDate", None, StringType()),
-            ("client_timestamp", "creationDate", None, StringType()),
-            ("geo", "meta/geoCountry", None, StringType()),
-            ("locale", "environment/settings/locale", None, StringType()),
-            ("channel", "meta/normalizedChannel", None, StringType()),
-            ("os", "meta/os", None, StringType()),
-            ("telemetry_enabled", "environment/settings/telemetryEnabled", None, BooleanType()),
-            ("has_addon", "environment/addons/activeAddons", has_addon, BooleanType()),
-            ("cliqz_version", "environment/addons/activeAddons", get_cliqz_version, StringType()),
-            ("event", "payload/payload/event", None, StringType()),
-            ("content_search_engine", "payload/payload/contentSearch", None, StringType()),
-            ("test", "payload/test", None, StringType())
-        ],
-        lambda ping: ping['payload/test'] == "testpilot@cliqz.com"
+def __main__(sc, sqlContext, day=None, save=True):
+    if day is None:
+        day = (date.today() - timedelta(1)).strftime("%Y%m%d")
+
+    has_addon = lambda x: "testpilot@cliqz.com" in x.keys() if x is not None else None
+
+    testpilottest_df = convert_pings(
+        sqlContext,
+        Dataset.from_source("telemetry") \
+            .where(docType="testpilottest") \
+            .where(submissionDate=day) \
+            .where(appName="Firefox") \
+            .records(sc),
+        DataFrameConfig(
+            [
+                ("client_id", "clientId", None, StringType()),
+                ("enc_cliqz_udid", "payload/payload/cliqzSession", None, StringType()),
+                ("telemetry_enabled", "environment/settings/telemetryEnabled", None, BooleanType()),
+                ("has_addon", "environment/addons/activeAddons", has_addon, BooleanType()),
+                ("test", "payload/test", None, StringType())
+            ],
+            lambda ping: ping['payload/test'] == "testpilot@cliqz.com"
+        )
     )
-).filter("event IS NOT NULL")
+
+    return testpilottest_df
