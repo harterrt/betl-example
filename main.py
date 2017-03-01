@@ -1,8 +1,7 @@
 from betl import *
-from moztelemetry.dataset import Dataset
 from datetime import date, timedelta
-from pyspark import SparkConf, SparkContext
-from pyspark.sql import SQLContext
+
+# Setup simple table to transform:
 
 def __main__(sc, sqlContext, day=None, save=True):
     if day is None:
