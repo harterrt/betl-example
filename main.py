@@ -5,7 +5,7 @@ from pyspark.sql import Row
 def __main__(sc, sqlContext, day=None, save=True):
     # Setup some example data
     Person = Row('name', 'age')
-    data = zip(range(20,24), ['alice', 'ben', 'charles', 'daniel'])
+    data = zip(['alice', 'ben', 'charles', 'daniel'], range(20,24))
     rdd = sc.parallelize(data).map(lambda x: Person(*x))
 
     data_frame = convert_rdd(
