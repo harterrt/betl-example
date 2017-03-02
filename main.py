@@ -1,31 +1,24 @@
 from betl import *
 from datetime import date, timedelta
-
-# Setup simple table to transform:
+from pyspark.sql import Row
 
 def __main__(sc, sqlContext, day=None, save=True):
-    if day is None:
-        day = (date.today() - timedelta(1)).strftime("%Y%m%d")
+    # Setup some example data
+    Person = Row('name', 'age')
+    data = zip(range(20,24), ['alice', 'ben', 'charles', 'daniel'])
+    rdd = sc.parallelize(data).map(lambda x: Person(*x))
 
-    has_addon = lambda x: "testpilot@cliqz.com" in x.keys() if x is not None else None
-
-    testpilottest_df = convert_pings(
+    data_frame = convert_rdd(
         sqlContext,
-        Dataset.from_source("telemetry") \
-            .where(docType="testpilottest") \
-            .where(submissionDate=day) \
-            .where(appName="Firefox") \
-            .records(sc),
+        rdd,
         DataFrameConfig(
             [
-                ("client_id", "clientId", None, StringType()),
-                ("enc_cliqz_udid", "payload/payload/cliqzSession", None, StringType()),
-                ("telemetry_enabled", "environment/settings/telemetryEnabled", None, BooleanType()),
-                ("has_addon", "environment/addons/activeAddons", has_addon, BooleanType()),
-                ("test", "payload/test", None, StringType())
+                ("name", "name", None, StringType()),
+                ("age", "age", None, LongType()),
+                ("drinking_age", "age", lambda x: x >= 21, BooleanType())
             ],
-            lambda ping: ping['payload/test'] == "testpilot@cliqz.com"
+            lambda x: True
         )
     )
 
-    return testpilottest_df
+    return data_frame
